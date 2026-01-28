@@ -1,0 +1,50 @@
+name: Build PR 298 to UMD + Tag
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout your fork
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Add upstream and fetch PR 298
+        run: |
+          git remote add upstream https://github.com/editor-js/image.git
+          git fetch upstream +refs/pull/298/head:refs/remotes/upstream/pr/298
+          git switch -C pr-298 refs/remotes/upstream/pr/298
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install deps
+        run: npm ci
+
+      - name: Build (repo script)
+        run: npm run build
+
+      - name: Ensure UMD bundle
+        run: |
+          npm i -D esbuild
+          mkdir -p dist_publish
+          # Try common build outputs first; fallback to source if needed
+          if [ -f dist/index.js ]; then IN=dist/index.js; \
+          elif [ -f dist/image.js ]; then IN=dist/image.js; \
+          elif [ -f dist/bundle.js ]; then IN=dist/bundle.js; \
+          else IN=src/index.ts; fi
+          npx esbuild "$IN" --bundle --format=iife --global-name=ImageTool --outfile=dist_publish/image-tool.resize.pr298.umd.js
+
+      - name: Commit dist and tag
+        run: |
+          git add dist_publish/image-tool.resize.pr298.umd.js
+          git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" commit -m "Build PR 298 UMD bundle" || true
+          git tag v0.0.1-pr298 || true
+          git push origin HEAD:pr-298 --tags
