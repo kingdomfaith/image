@@ -50,4 +50,5 @@ jobs:
           git add dist_publish/image-tool.resize.pr298.umd.js
           git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" commit -m "Build PR 298 UMD bundle" || true
           git tag v0.0.1-pr298 || true
-          git push origin HEAD:pr-298 --tags
+          git push origin pr-298
+          git push origin v0.0.1-pr298
