@@ -34,16 +34,20 @@ jobs:
       - name: Ensure UMD bundle
         run: |
           mkdir -p dist_publish
-          # Try common build outputs first; fallback to source if needed
-          if [ -f dist/index.js ]; then IN=dist/index.js; \
-          elif [ -f dist/image.js ]; then IN=dist/image.js; \
-          elif [ -f dist/bundle.js ]; then IN=dist/bundle.js; \
-          else IN=src/index.ts; fi
+          # Pick an entry; prefer built JS if present, else fall back to TS source
+              if [ -f dist/index.js ]; then IN=dist/index.js; \
+              elif [ -f dist/image.js ]; then IN=dist/image.js; \
+              elif [ -f dist/bundle.js ]; then IN=dist/bundle.js; \
+              else IN=src/index.ts; fi
+          
+          # Build to a global namespace, then assign the constructor to window.ImageTool
           npx --yes esbuild@latest "$IN" \
-            --bundle \
-            --format=iife \
-            --global-name=ImageTool \
-            --outfile=dist_publish/image-tool.resize.pr298.umd.js
+                --bundle \
+                --format=iife \
+                --global-name=__IMGT_NS__ \
+                --footer:js="window.ImageTool = __IMGT_NS__.default || __IMGT_NS__.ImageTool || __IMGT_NS__;" \
+                --entry-names=image-tool.resize.pr298.umd \
+                --outdir=dist_publish
           
       - name: Commit dist and tag (idempotent)
         run: |
