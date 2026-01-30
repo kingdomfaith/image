@@ -45,10 +45,29 @@ jobs:
             --global-name=ImageTool \
             --outfile=dist_publish/image-tool.resize.pr298.umd.js
           
-      - name: Commit dist and tag
+      - name: Commit dist and tag (idempotent)
         run: |
+          # Always work on a dedicated build branch to avoid non-fast-forward issues
+          git fetch origin
+          git checkout -B pr-298-builds
+
+          # Stage and commit the generated bundle (allow empty to keep tagging predictable)
           git add dist_publish/image-tool.resize.pr298.umd.js
-          git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" commit -m "Build PR 298 UMD bundle" || true
-          git tag v0.0.1-pr298 || true
-          git push origin pr-298
-          git push origin v0.0.1-pr298
+          git -c user.name="github-actions[bot]" \
+              -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
+              commit -m "Build PR 298 UMD bundle" || true
+
+          # Create a unique tag per run to avoid 'tag already exists'
+          TAG="v-pr298-build-${GITHUB_RUN_NUMBER}"
+
+          # If the tag name somehow already exists locally/remote, delete then recreate
+          git tag -d "$TAG" 2>/dev/null || true
+          git push origin :refs/tags/"$TAG" 2>/dev/null || true
+          git tag "$TAG"
+
+          # Push ONLY the build branch (force-with-lease is safe for CI-owned branches)
+          git push --force-with-lease origin pr-298-builds
+
+          # Push ONLY our new tag (do NOT use --tags)
+          git push origin "$TAG"
+
