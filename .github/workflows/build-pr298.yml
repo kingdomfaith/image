@@ -33,15 +33,18 @@ jobs:
 
       - name: Ensure UMD bundle
         run: |
-          npm i -D esbuild
           mkdir -p dist_publish
           # Try common build outputs first; fallback to source if needed
           if [ -f dist/index.js ]; then IN=dist/index.js; \
           elif [ -f dist/image.js ]; then IN=dist/image.js; \
           elif [ -f dist/bundle.js ]; then IN=dist/bundle.js; \
           else IN=src/index.ts; fi
-          npx esbuild "$IN" --bundle --format=iife --global-name=ImageTool --outfile=dist_publish/image-tool.resize.pr298.umd.js
-
+          npx --yes esbuild@latest "$IN" \
+            --bundle \
+            --format=iife \
+            --global-name=ImageTool \
+            --outfile=dist_publish/image-tool.resize.pr298.umd.js
+          
       - name: Commit dist and tag
         run: |
           git add dist_publish/image-tool.resize.pr298.umd.js
